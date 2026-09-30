@@ -209,8 +209,8 @@ function colorize(pw) {
     : CLASSES.special.includes(ch) ? `<span class="s">${esc(ch)}</span>` : esc(ch)).join("");
 }
 function targetFlag(bits) {
-  return bits >= ENTROPY_TARGET ? `<span class="flag-ok">≥ ${ENTROPY_TARGET} Bit</span>`
-    : `<span class="flag-warn">${ENTROPY_TARGET} Bit nicht erreicht</span>`;
+  return bits >= ENTROPY_TARGET ? `<span class="flag-ok" style="white-space:nowrap">≥ ${ENTROPY_TARGET} Bit – Passwort ist sicher</span>`
+    : `<span class="flag-warn" style="white-space:nowrap">&lt; ${ENTROPY_TARGET} Bit – Passwort ist unsicher</span>`;
 }
 
 // ---------- Ansichten ----------
