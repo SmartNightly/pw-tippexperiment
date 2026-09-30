@@ -223,6 +223,7 @@ function viewStart() {
   app.innerHTML = `
     <h1>Passwort-Tippexperiment</h1>
     <p class="muted">10 Kennwörter, je 5 pro Policy in zufälliger Reihenfolge. Tipp jedes Kennwort ab und bestätige mit Enter. Gemessen werden Tippzeit, Lesezeit und Versuche.</p>
+    <p class="muted">Ein Kennwort gilt als sicher, wenn seine Entropie <strong>über ${ENTROPY_TARGET} Bit</strong> liegt; darunter gilt es als nicht sicher.</p>
     <div class="panel">
       <p><span class="tag ${g1}">Policy 1</span> ${GROUPS[g1].name} – ${fmtN(entropyP1())} Bit ${targetFlag(entropyP1())}</p>
       <div class="setting">
