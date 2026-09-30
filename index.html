@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Passwort-Tippexperiment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  :root {
+    --paper: #EEF1F4; --panel: #FFFFFF; --ink: #14202B; --muted: #5C6B78; --line: #CBD3DA;
+    --blue: #1F4E8C; --blue-ink: #FFFFFF; --ok: #2E7D4F; --warn: #B3261E; --warn-bg: #FBE9E7; --ok-bg: #E6F2EA;
+    --p1: #1F4E8C; --p2: #8A5A00; --p3: #6A3D9A;
+    --sans: "IBM Plex Sans", "Segoe UI", Roboto, system-ui, sans-serif;
+    --mono: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); line-height: 1.5;
+    padding: calc(env(safe-area-inset-top, 0px) + 1.5rem) 1rem calc(env(safe-area-inset-bottom, 0px) + 2rem);
+  }
+  main { max-width: 34rem; margin: 0 auto; }
+  h1 { font-size: 1.5rem; font-weight: 600; margin: 0 0 .25rem; letter-spacing: -.01em; }
+  h2 { font-size: 1.15rem; font-weight: 600; margin: 1.5rem 0 .5rem; }
+  p { margin: .4rem 0; } .muted { color: var(--muted); font-size: .92rem; }
+  button {
+    font: inherit; font-weight: 600; border: 1.5px solid var(--blue); background: var(--blue); color: var(--blue-ink);
+    border-radius: 6px; padding: .7rem 1.2rem; cursor: pointer; min-height: 44px;
+  }
+  button.secondary { background: transparent; color: var(--blue); }
+  button.danger { background: transparent; color: var(--warn); border-color: var(--warn); }
+  button:focus-visible, input:focus-visible { outline: 3px solid #9DB9E0; outline-offset: 2px; }
+  .row { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1rem; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 1.25rem; margin-top: 1rem; }
+  .pw {
+    font-family: var(--mono); font-weight: 500; font-size: clamp(1.15rem, 5.2vw, 1.6rem); word-break: break-all;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 1rem; margin: .75rem 0;
+    line-height: 1.4; user-select: none; -webkit-user-select: none;
+  }
+  .pw .d { color: var(--p2); } .pw .s { color: var(--warn); }
+  input[type=text] {
+    width: 100%; font-family: var(--mono); font-size: 1.15rem; padding: .8rem .9rem; border: 1.5px solid var(--line);
+    border-radius: 6px; background: var(--panel); color: var(--ink);
+  }
+  .tag { display: inline-block; font-size: .8rem; font-weight: 600; padding: .1rem .5rem; border-radius: 4px; border: 1px solid; }
+  .tag.p1 { color: var(--p1); border-color: var(--p1); } .tag.p2_8 { color: var(--p2); border-color: var(--p2); }
+  .tag.p2_12 { color: var(--p3); border-color: var(--p3); }
+  .switch { display: inline-flex; border: 1.5px solid var(--blue); border-radius: 6px; overflow: hidden; vertical-align: middle; }
+  .switch button { border: 0; border-radius: 0; background: transparent; color: var(--blue); padding: .4rem 1rem; min-height: 40px; }
+  .switch button[aria-pressed="true"] { background: var(--blue); color: var(--blue-ink); }
+  .setting { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-top: .6rem; }
+  .flag-ok { color: var(--ok); } .flag-warn { color: var(--warn); font-weight: 600; }
+  .msg-err { background: var(--warn-bg); color: var(--warn); padding: .6rem .8rem; border-radius: 6px; margin-top: .6rem; }
+  .msg-ok { background: var(--ok-bg); color: var(--ok); padding: .6rem .8rem; border-radius: 6px; margin-top: .6rem; }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; margin-top: .5rem; }
+  th, td { text-align: left; padding: .45rem .3rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; } td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .tablewrap { overflow-x: auto; }
+  .bars { margin-top: .75rem; }
+  .bar { display: grid; grid-template-columns: 8.5rem 1fr 4rem; align-items: center; gap: .5rem; margin: .35rem 0; font-size: .92rem; }
+  .bar i { display: block; height: 14px; border-radius: 3px; } .bar .v { text-align: right; font-variant-numeric: tabular-nums; }
+  .progress { color: var(--muted); font-size: .9rem; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: .25rem 1rem; margin: .5rem 0; }
+  dt { color: var(--muted); } dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .hidden { display: none; }
+  @media (prefers-reduced-motion: no-preference) { button { transition: background .12s; } }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script src="wordlist.js"></script>
+<script>
+"use strict";
+// ---------- Konfiguration ----------
+const ENTROPY_TARGET = 76;
+const ROUNDS_PER_POLICY = 5;
+const STORAGE_KEY = "pwtyping.runs.v1";
+const P2_LEN_KEY = "pwtyping.p2len.v1";
+const P2_LENGTHS = [8, 12];
+const DICEWARE_WORDS = 6;
+// Gruppen für Anzeige und Statistik: Policy 2 wird nach Länge getrennt ausgewertet.
+const GROUPS = {
+  p1:    { label: "Policy 1", short: "Diceware",   name: "Passphrase (6 Diceware-Wörter)", color: "--p1" },
+  p2_8:  { label: "Policy 2", short: "Komplex 8",  name: "Komplex (8 Zeichen, 4 Zeichenklassen)", color: "--p2" },
+  p2_12: { label: "Policy 2", short: "Komplex 12", name: "Komplex (12 Zeichen, 4 Zeichenklassen)", color: "--p3" }
+};
+const GROUP_ORDER = ["p1", "p2_8", "p2_12"];
+function groupOf(r) { return r.policy === "p1" ? "p1" : (r.len === 12 ? "p2_12" : "p2_8"); }
+const CLASSES = {
+  upper: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+  lower: "abcdefghijklmnopqrstuvwxyz",
+  digit: "0123456789",
+  special: "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"   // 32 druckbare ASCII-Sonderzeichen
+};
+const ALPHABET = CLASSES.upper + CLASSES.lower + CLASSES.digit + CLASSES.special; // 94
+
+// ---------- Einstellung Policy-2-Länge ----------
+function loadP2Len() { try { const v = parseInt(localStorage.getItem(P2_LEN_KEY), 10); return P2_LENGTHS.includes(v) ? v : 8; } catch { return 8; } }
+let p2Len = loadP2Len();
+function setP2Len(v) { p2Len = v; try { localStorage.setItem(P2_LEN_KEY, String(v)); } catch {} }
+
+// ---------- Zufall (kryptografisch, ohne Modulo-Bias) ----------
+function randInt(n) {
+  const max = Math.floor(0x100000000 / n) * n;
+  const buf = new Uint32Array(1);
+  let x;
+  do { crypto.getRandomValues(buf); x = buf[0]; } while (x >= max);
+  return x % n;
+}
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = randInt(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+// ---------- Entropie ----------
+function log2(x) { return Math.log(x) / Math.LN2; }
+// Policy 1: 6 Wörter aus 7776 (12,92 Bit/Wort) + 1 Bit pro Wort für Gross-/Kleinschreibung des Anfangsbuchstabens.
+function entropyP1() { return DICEWARE_WORDS * (log2(WORDLIST.length) + 1); }
+// Policy 2: L Zeichen aus 94, jede Klasse mindestens einmal -> Inklusion-Exklusion über die Klassen.
+function entropyP2(L = p2Len) {
+  const sizes = Object.values(CLASSES).map(c => c.length);
+  let count = 0;
+  for (let mask = 0; mask < 16; mask++) {
+    let removed = 0, bits = 0;
+    for (let k = 0; k < 4; k++) if (mask & (1 << k)) { removed += sizes[k]; bits++; }
+    count += (bits % 2 ? -1 : 1) * Math.pow(ALPHABET.length - removed, L);
+  }
+  return log2(count);
+}
+
+// ---------- Generatoren ----------
+function genP1() {
+  let out = "";
+  for (let i = 0; i < DICEWARE_WORDS; i++) {
+    const w = WORDLIST[randInt(WORDLIST.length)];
+    out += randInt(2) ? w[0].toUpperCase() + w.slice(1) : w;
+  }
+  return out;
+}
+function genP2(L = p2Len) {
+  // Rejection Sampling: gleichverteilt über alle gültigen Kennwörter (passt exakt zur Entropieberechnung).
+  for (;;) {
+    let s = "";
+    for (let i = 0; i < L; i++) s += ALPHABET[randInt(ALPHABET.length)];
+    if (Object.values(CLASSES).every(c => [...s].some(ch => c.includes(ch)))) return s;
+  }
+}
+function generate(policyId, L) {
+  const pw = policyId === "p1" ? genP1() : genP2(L);
+  const entropy = policyId === "p1" ? entropyP1() : entropyP2(L);
+  return { policy: policyId, group: policyId === "p1" ? "p1" : "p2_" + L, pw, entropy, meetsTarget: entropy >= ENTROPY_TARGET };
+}
+
+// ---------- Speicher ----------
+function loadRuns() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } }
+function saveRun(run) { try { const r = loadRuns(); r.push(run); localStorage.setItem(STORAGE_KEY, JSON.stringify(r)); return true; } catch { return false; } }
+
+// ---------- Statistik ----------
+function mean(a) { return a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN; }
+function median(a) { if (!a.length) return NaN; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+function statsFor(rounds) {
+  const t = rounds.map(r => r.typingMs), rd = rounds.map(r => r.readMs);
+  return {
+    n: rounds.length,
+    typingMean: mean(t), typingMedian: median(t), readMean: mean(rd),
+    attemptsMean: mean(rounds.map(r => r.attempts)),
+    firstTry: rounds.length ? rounds.filter(r => r.attempts === 1).length / rounds.length : NaN,
+    entropyMean: mean(rounds.map(r => r.entropy)),
+    cps: mean(rounds.map(r => r.len / (r.typingMs / 1000))),
+    targetMet: rounds.length ? rounds.filter(r => r.meetsTarget).length / rounds.length : NaN
+  };
+}
+function groupedStats(rounds) {
+  return GROUP_ORDER.map(g => ({ g, s: statsFor(rounds.filter(r => groupOf(r) === g)) })).filter(x => x.s.n > 0);
+}
+const fmtS = ms => isNaN(ms) ? "–" : (ms / 1000).toFixed(2) + " s";
+const fmtN = (x, d = 1) => isNaN(x) ? "–" : x.toFixed(d);
+const fmtPct = x => isNaN(x) ? "–" : Math.round(x * 100) + " %";
+const esc = s => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const tag = g => `<span class="tag ${g}">${GROUPS[g].short}</span>`;
+function colorize(pw) {
+  return [...pw].map(ch => CLASSES.digit.includes(ch) ? `<span class="d">${esc(ch)}</span>`
+    : CLASSES.special.includes(ch) ? `<span class="s">${esc(ch)}</span>` : esc(ch)).join("");
+}
+function targetFlag(bits) {
+  return bits >= ENTROPY_TARGET ? `<span class="flag-ok">≥ ${ENTROPY_TARGET} Bit</span>`
+    : `<span class="flag-warn">${ENTROPY_TARGET} Bit nicht erreicht</span>`;
+}
+
+// ---------- Ansichten ----------
+const app = document.getElementById("app");
+let run = null;
+
+function viewStart() {
+  const runs = loadRuns();
+  const g2 = "p2_" + p2Len;
+  app.innerHTML = `
+    <h1>Passwort-Tippexperiment</h1>
+    <p class="muted">10 Kennwörter, je 5 pro Policy in zufälliger Reihenfolge. Tipp jedes Kennwort ab und bestätige mit Enter. Gemessen werden Tippzeit, Lesezeit und Versuche.</p>
+    <div class="panel">
+      <p><span class="tag p1">Policy 1</span> ${GROUPS.p1.name} – ${fmtN(entropyP1())} Bit ${targetFlag(entropyP1())}</p>
+      <p><span class="tag ${g2}">Policy 2</span> ${GROUPS[g2].name} – ${fmtN(entropyP2())} Bit ${targetFlag(entropyP2())}</p>
+      <div class="setting">
+        <span id="lenLabel">Länge Policy 2</span>
+        <div class="switch" role="group" aria-labelledby="lenLabel">
+          ${P2_LENGTHS.map(L => `<button type="button" data-len="${L}" aria-pressed="${L === p2Len}">${L} Zeichen</button>`).join("")}
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <button id="btnStart">Start</button>
+      <button id="btnStats" class="secondary">Statistik${runs.length ? ` (${runs.length} Durchgänge)` : ""}</button>
+    </div>`;
+  app.querySelectorAll(".switch button").forEach(b => b.onclick = () => {
+    setP2Len(parseInt(b.dataset.len, 10)); viewStart();
+    const again = app.querySelector(`.switch button[data-len="${p2Len}"]`); if (again) again.focus();
+  });
+  document.getElementById("btnStart").onclick = startRun;
+  document.getElementById("btnStats").onclick = viewStats;
+}
+
+function startRun() {
+  const order = shuffle([...Array(ROUNDS_PER_POLICY).fill("p1"), ...Array(ROUNDS_PER_POLICY).fill("p2")]);
+  run = { id: Date.now().toString(36), startedAt: new Date().toISOString(), p2Len, order, rounds: [], idx: 0 };
+  nextRound();
+}
+
+function nextRound() {
+  if (run.idx >= run.order.length) return finishRun();
+  const item = generate(run.order[run.idx], run.p2Len);
+  const st = { tShown: performance.now(), tFirst: null, attempts: 0 };
+  app.innerHTML = `
+    <p class="progress">Kennwort ${run.idx + 1} von ${run.order.length}</p>
+    <p><span class="tag ${item.group}">${GROUPS[item.group].label}</span> ${GROUPS[item.group].name}</p>
+    <div class="pw" aria-label="Kennwort">${colorize(item.pw)}</div>
+    <input type="text" id="inp" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+      inputmode="text" enterkeyhint="done" aria-label="Kennwort eingeben" placeholder="Kennwort tippen, Enter bestätigt">
+    <div id="msg"></div>
+    <div class="row"><button id="btnAbort" class="danger">Abbrechen</button></div>`;
+  const inp = document.getElementById("inp"), msg = document.getElementById("msg");
+  inp.addEventListener("paste", e => e.preventDefault());
+  inp.addEventListener("drop", e => e.preventDefault());
+  inp.addEventListener("input", () => { if (st.tFirst === null && inp.value.length) st.tFirst = performance.now(); });
+  inp.addEventListener("keydown", e => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    if (st.tFirst === null) return;
+    st.attempts++;
+    if (inp.value === item.pw) {
+      const tDone = performance.now();
+      run.rounds.push({
+        policy: item.policy, len: item.pw.length, entropy: item.entropy, meetsTarget: item.meetsTarget,
+        readMs: st.tFirst - st.tShown, typingMs: tDone - st.tFirst, attempts: st.attempts
+      });
+      viewRoundResult(run.rounds[run.rounds.length - 1]);
+    } else {
+      msg.innerHTML = `<div class="msg-err">Nicht identisch – Versuch ${st.attempts}. Nochmals tippen.</div>`;
+      inp.value = ""; inp.focus();
+    }
+  });
+  document.getElementById("btnAbort").onclick = () => { if (confirm("Durchgang abbrechen? Die Messungen werden verworfen.")) { run = null; viewStart(); } };
+  inp.focus();
+}
+
+function viewRoundResult(r) {
+  app.innerHTML = `
+    <p class="progress">Kennwort ${run.idx + 1} von ${run.order.length} – korrekt</p>
+    <div class="panel">
+      <dl>
+        <dt>Policy</dt><dd>${tag(groupOf(r))}</dd>
+        <dt>Tippzeit</dt><dd>${fmtS(r.typingMs)}</dd>
+        <dt>Lesezeit bis erste Taste</dt><dd>${fmtS(r.readMs)}</dd>
+        <dt>Entropie</dt><dd>${fmtN(r.entropy)} Bit ${targetFlag(r.entropy)}</dd>
+        <dt>Versuche</dt><dd>${r.attempts}</dd>
+      </dl>
+    </div>
+    <div class="row"><button id="btnNext">${run.idx + 1 < run.order.length ? "Weiter" : "Auswertung"}</button></div>`;
+  const b = document.getElementById("btnNext");
+  b.onclick = () => { run.idx++; nextRound(); };
+  b.focus();
+}
+
+function finishRun() {
+  const saved = saveRun({ id: run.id, startedAt: run.startedAt, p2Len: run.p2Len, rounds: run.rounds });
+  const rounds = run.rounds; run = null;
+  app.innerHTML = `
+    <h1>Auswertung des Durchgangs</h1>
+    ${saved ? "" : `<div class="msg-err">Speichern nicht möglich (localStorage blockiert). Die Auswertung ist nur jetzt sichtbar.</div>`}
+    ${policyTable(rounds)}
+    ${bars(rounds)}
+    <h2>Einzelwerte</h2>
+    <div class="tablewrap"><table>
+      <tr><th>#</th><th>Policy</th><th class="num">Tippzeit</th><th class="num">Lesezeit</th><th class="num">Versuche</th><th class="num">Bit</th></tr>
+      ${rounds.map((r, i) => `<tr><td>${i + 1}</td><td>${tag(groupOf(r))}</td>
+        <td class="num">${fmtS(r.typingMs)}</td><td class="num">${fmtS(r.readMs)}</td><td class="num">${r.attempts}</td>
+        <td class="num ${r.meetsTarget ? "" : "flag-warn"}">${fmtN(r.entropy)}</td></tr>`).join("")}
+    </table></div>
+    <div class="row"><button id="btnHome">Zur Startseite</button><button id="btnStats" class="secondary">Gesamtstatistik</button></div>`;
+  document.getElementById("btnHome").onclick = viewStart;
+  document.getElementById("btnStats").onclick = viewStats;
+}
+
+function policyTable(rounds) {
+  const gs = groupedStats(rounds);
+  const row = (label, f) => `<tr><th>${label}</th>${gs.map(x => `<td class="num">${f(x.s)}</td>`).join("")}</tr>`;
+  return `<div class="tablewrap"><table>
+    <tr><th></th>${gs.map(x => `<th class="num">${tag(x.g)}</th>`).join("")}</tr>
+    ${row("Kennwörter", s => s.n)}
+    ${row("Tippzeit Ø", s => fmtS(s.typingMean))}
+    ${row("Tippzeit Median", s => fmtS(s.typingMedian))}
+    ${row("Lesezeit Ø", s => fmtS(s.readMean))}
+    ${row("Zeichen / s", s => fmtN(s.cps))}
+    ${row("Versuche Ø", s => fmtN(s.attemptsMean, 2))}
+    ${row("Beim 1. Versuch korrekt", s => fmtPct(s.firstTry))}
+    ${row("Entropie Ø", s => fmtN(s.entropyMean) + " Bit")}
+    ${row(`≥ ${ENTROPY_TARGET} Bit`, s => fmtPct(s.targetMet))}
+  </table></div>`;
+}
+function bars(rounds) {
+  const gs = groupedStats(rounds);
+  const mx = Math.max(...gs.map(x => x.s.typingMedian || 0)) || 1;
+  return `<div class="bars"><p class="muted">Tippzeit, Median</p>${gs.map(({ g, s }) =>
+    `<div class="bar"><span>${GROUPS[g].short}</span><i style="width:${Math.max(2, 100 * (s.typingMedian || 0) / mx)}%;background:var(${GROUPS[g].color})"></i><span class="v">${fmtS(s.typingMedian)}</span></div>`).join("")}</div>`;
+}
+
+function viewStats() {
+  const runs = loadRuns();
+  const all = runs.flatMap(r => r.rounds);
+  app.innerHTML = `
+    <h1>Statistik aller Durchgänge</h1>
+    ${runs.length ? `<p class="muted">${runs.length} Durchgänge, ${all.length} Kennwörter. Policy 2 wird nach Länge getrennt ausgewertet. Daten liegen nur in diesem Browser (localStorage).</p>
+      ${policyTable(all)} ${bars(all)}
+      <h2>Durchgänge</h2>
+      <div class="tablewrap"><table>
+        <tr><th>Datum</th><th class="num">Diceware Median</th><th class="num">Policy 2 Median</th><th class="num">Versuche Ø</th></tr>
+        ${runs.slice().reverse().map(r => {
+          const a = statsFor(r.rounds.filter(x => x.policy === "p1")), p2 = r.rounds.filter(x => x.policy === "p2");
+          const b = statsFor(p2), g = p2.length ? groupOf(p2[0]) : "p2_" + (r.p2Len || 8);
+          return `<tr><td>${new Date(r.startedAt).toLocaleString("de-CH")}</td><td class="num">${fmtS(a.typingMedian)}</td>
+            <td class="num">${tag(g)} ${fmtS(b.typingMedian)}</td><td class="num">${fmtN(mean(r.rounds.map(x => x.attempts)), 2)}</td></tr>`; }).join("")}
+      </table></div>`
+    : `<div class="panel"><p>Noch keine Durchgänge gespeichert. Starte einen Durchgang, um Messwerte zu sammeln.</p></div>`}
+    <div class="row">
+      <button id="btnHome">Zur Startseite</button>
+      ${runs.length ? `<button id="btnExport" class="secondary">JSON exportieren</button><button id="btnClear" class="danger">Alle Daten löschen</button>` : ""}
+    </div>`;
+  document.getElementById("btnHome").onclick = viewStart;
+  const ex = document.getElementById("btnExport");
+  if (ex) ex.onclick = () => {
+    const blob = new Blob([JSON.stringify(runs, null, 2)], { type: "application/json" });
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: "pwtyping-runs.json" });
+    a.click(); URL.revokeObjectURL(a.href);
+  };
+  const cl = document.getElementById("btnClear");
+  if (cl) cl.onclick = () => { if (confirm("Alle gespeicherten Durchgänge unwiderruflich löschen?")) { localStorage.removeItem(STORAGE_KEY); viewStats(); } };
+}
+
+viewStart();
+</script>
+</body>
+</html>
