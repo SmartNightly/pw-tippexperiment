@@ -10,7 +10,7 @@
   :root {
     --paper: #EEF1F4; --panel: #FFFFFF; --ink: #14202B; --muted: #5C6B78; --line: #CBD3DA;
     --blue: #1F4E8C; --blue-ink: #FFFFFF; --ok: #2E7D4F; --warn: #B3261E; --warn-bg: #FBE9E7; --ok-bg: #E6F2EA;
-    --p1: #1F4E8C; --p2: #8A5A00; --p3: #6A3D9A;
+    --p1: #1F4E8C; --p2: #8A5A00; --p3: #6A3D9A; --p4: #1E6B6B;
     --sans: "IBM Plex Sans", "Segoe UI", Roboto, system-ui, sans-serif;
     --mono: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
   }
@@ -46,10 +46,12 @@
   .tag { display: inline-block; font-size: .8rem; font-weight: 600; padding: .1rem .5rem; border-radius: 4px; border: 1px solid; }
   .tag.p1 { color: var(--p1); border-color: var(--p1); } .tag.p2_8 { color: var(--p2); border-color: var(--p2); }
   .tag.p2_12 { color: var(--p3); border-color: var(--p3); }
+  .tag.p1_letters { color: var(--p4); border-color: var(--p4); }
   .switch { display: inline-flex; border: 1.5px solid var(--blue); border-radius: 6px; overflow: hidden; vertical-align: middle; }
   .switch button { border: 0; border-radius: 0; background: transparent; color: var(--blue); padding: .4rem 1rem; min-height: 40px; }
   .switch button[aria-pressed="true"] { background: var(--blue); color: var(--blue-ink); }
-  .setting { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-top: .6rem; }
+  .setting { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin: .4rem 0 1rem; }
+  .setting > span:first-child { min-width: 8.5rem; color: var(--muted); font-size: .92rem; }
   .flag-ok { color: var(--ok); } .flag-warn { color: var(--warn); font-weight: 600; }
   .msg-err { background: var(--warn-bg); color: var(--warn); padding: .6rem .8rem; border-radius: 6px; margin-top: .6rem; }
   .msg-ok { background: var(--ok-bg); color: var(--ok); padding: .6rem .8rem; border-radius: 6px; margin-top: .6rem; }
@@ -58,7 +60,7 @@
   th { color: var(--muted); font-weight: 600; } td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .tablewrap { overflow-x: auto; }
   .bars { margin-top: .75rem; }
-  .bar { display: grid; grid-template-columns: 8.5rem 1fr 4rem; align-items: center; gap: .5rem; margin: .35rem 0; font-size: .92rem; }
+  .bar { display: grid; grid-template-columns: 8.5rem 1fr 4.5rem; align-items: center; gap: .5rem; margin: .35rem 0; font-size: .92rem; }
   .bar i { display: block; height: 14px; border-radius: 3px; } .bar .v { text-align: right; font-variant-numeric: tabular-nums; }
   .progress { color: var(--muted); font-size: .9rem; }
   dl { display: grid; grid-template-columns: max-content 1fr; gap: .25rem 1rem; margin: .5rem 0; }
@@ -79,14 +81,23 @@ const STORAGE_KEY = "pwtyping.runs.v1";
 const P2_LEN_KEY = "pwtyping.p2len.v1";
 const P2_LENGTHS = [8, 12];
 const DICEWARE_WORDS = 6;
-// Gruppen für Anzeige und Statistik: Policy 2 wird nach Länge getrennt ausgewertet.
+const P1_MODE_KEY = "pwtyping.p1mode.v1";
+const P1_MODES = [{ id: "letters", label: "Nur Buchstaben" }, { id: "diceware", label: "Diceware" }];
+const P1_MODE_DEFAULT = "letters";
+const LETTERS_LEN = 14;
+// Gruppen für Anzeige und Statistik: jede Variante (Art bzw. Länge) wird getrennt ausgewertet.
 const GROUPS = {
   p1:    { label: "Policy 1", short: "Diceware",   name: "Passphrase (6 Diceware-Wörter)", color: "--p1" },
+  p1_letters: { label: "Policy 1", short: "Buchstaben 14", name: "Buchstaben (14 Zeichen, gross/klein)", color: "--p4" },
   p2_8:  { label: "Policy 2", short: "Komplex 8",  name: "Komplex (8 Zeichen, 4 Zeichenklassen)", color: "--p2" },
   p2_12: { label: "Policy 2", short: "Komplex 12", name: "Komplex (12 Zeichen, 4 Zeichenklassen)", color: "--p3" }
 };
-const GROUP_ORDER = ["p1", "p2_8", "p2_12"];
-function groupOf(r) { return r.policy === "p1" ? "p1" : (r.len === 12 ? "p2_12" : "p2_8"); }
+const GROUP_ORDER = ["p1", "p1_letters", "p2_8", "p2_12"];
+function groupOf(r) {
+  if (r.policy === "p1") return r.variant === "letters" ? "p1_letters" : "p1";   // Altdaten ohne variant = Diceware
+  return r.len === 12 ? "p2_12" : "p2_8";
+}
+function p1Group(mode) { return mode === "letters" ? "p1_letters" : "p1"; }
 const CLASSES = {
   upper: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
   lower: "abcdefghijklmnopqrstuvwxyz",
@@ -99,6 +110,9 @@ const ALPHABET = CLASSES.upper + CLASSES.lower + CLASSES.digit + CLASSES.special
 function loadP2Len() { try { const v = parseInt(localStorage.getItem(P2_LEN_KEY), 10); return P2_LENGTHS.includes(v) ? v : 8; } catch { return 8; } }
 let p2Len = loadP2Len();
 function setP2Len(v) { p2Len = v; try { localStorage.setItem(P2_LEN_KEY, String(v)); } catch {} }
+function loadP1Mode() { try { const v = localStorage.getItem(P1_MODE_KEY); return P1_MODES.some(m => m.id === v) ? v : P1_MODE_DEFAULT; } catch { return P1_MODE_DEFAULT; } }
+let p1Mode = loadP1Mode();
+function setP1Mode(v) { p1Mode = v; try { localStorage.setItem(P1_MODE_KEY, v); } catch {} }
 
 // ---------- Zufall (kryptografisch, ohne Modulo-Bias) ----------
 function randInt(n) {
@@ -113,7 +127,11 @@ function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = randInt
 // ---------- Entropie ----------
 function log2(x) { return Math.log(x) / Math.LN2; }
 // Policy 1: 6 Wörter aus 7776 (12,92 Bit/Wort) + 1 Bit pro Wort für Gross-/Kleinschreibung des Anfangsbuchstabens.
-function entropyP1() { return DICEWARE_WORDS * (log2(WORDLIST.length) + 1); }
+// Variante "Nur Buchstaben": 14 Zeichen aus 52, mindestens je ein Gross- und Kleinbuchstabe.
+function entropyP1(mode = p1Mode) {
+  if (mode === "letters") return log2(Math.pow(52, LETTERS_LEN) - 2 * Math.pow(26, LETTERS_LEN));
+  return DICEWARE_WORDS * (log2(WORDLIST.length) + 1);
+}
 // Policy 2: L Zeichen aus 94, jede Klasse mindestens einmal -> Inklusion-Exklusion über die Klassen.
 function entropyP2(L = p2Len) {
   const sizes = Object.values(CLASSES).map(c => c.length);
@@ -135,6 +153,14 @@ function genP1() {
   }
   return out;
 }
+function genP1Letters() {
+  const letters = CLASSES.upper + CLASSES.lower;
+  for (;;) {
+    let s = "";
+    for (let i = 0; i < LETTERS_LEN; i++) s += letters[randInt(letters.length)];
+    if (/[A-Z]/.test(s) && /[a-z]/.test(s)) return s;
+  }
+}
 function genP2(L = p2Len) {
   // Rejection Sampling: gleichverteilt über alle gültigen Kennwörter (passt exakt zur Entropieberechnung).
   for (;;) {
@@ -143,10 +169,12 @@ function genP2(L = p2Len) {
     if (Object.values(CLASSES).every(c => [...s].some(ch => c.includes(ch)))) return s;
   }
 }
-function generate(policyId, L) {
-  const pw = policyId === "p1" ? genP1() : genP2(L);
-  const entropy = policyId === "p1" ? entropyP1() : entropyP2(L);
-  return { policy: policyId, group: policyId === "p1" ? "p1" : "p2_" + L, pw, entropy, meetsTarget: entropy >= ENTROPY_TARGET };
+function generate(policyId, L, mode) {
+  const isP1 = policyId === "p1";
+  const pw = isP1 ? (mode === "letters" ? genP1Letters() : genP1()) : genP2(L);
+  const entropy = isP1 ? entropyP1(mode) : entropyP2(L);
+  return { policy: policyId, variant: isP1 ? mode : "complex", group: isP1 ? p1Group(mode) : "p2_" + L,
+           pw, entropy, meetsTarget: entropy >= ENTROPY_TARGET };
 }
 
 // ---------- Speicher ----------
@@ -191,12 +219,18 @@ let run = null;
 
 function viewStart() {
   const runs = loadRuns();
-  const g2 = "p2_" + p2Len;
+  const g1 = p1Group(p1Mode), g2 = "p2_" + p2Len;
   app.innerHTML = `
     <h1>Passwort-Tippexperiment</h1>
     <p class="muted">10 Kennwörter, je 5 pro Policy in zufälliger Reihenfolge. Tipp jedes Kennwort ab und bestätige mit Enter. Gemessen werden Tippzeit, Lesezeit und Versuche.</p>
     <div class="panel">
-      <p><span class="tag p1">Policy 1</span> ${GROUPS.p1.name} – ${fmtN(entropyP1())} Bit ${targetFlag(entropyP1())}</p>
+      <p><span class="tag ${g1}">Policy 1</span> ${GROUPS[g1].name} – ${fmtN(entropyP1())} Bit ${targetFlag(entropyP1())}</p>
+      <div class="setting">
+        <span id="modeLabel">Art Policy 1</span>
+        <div class="switch" role="group" aria-labelledby="modeLabel">
+          ${P1_MODES.map(m => `<button type="button" data-mode="${m.id}" aria-pressed="${m.id === p1Mode}">${m.label}</button>`).join("")}
+        </div>
+      </div>
       <p><span class="tag ${g2}">Policy 2</span> ${GROUPS[g2].name} – ${fmtN(entropyP2())} Bit ${targetFlag(entropyP2())}</p>
       <div class="setting">
         <span id="lenLabel">Länge Policy 2</span>
@@ -209,9 +243,13 @@ function viewStart() {
       <button id="btnStart">Start</button>
       <button id="btnStats" class="secondary">Statistik${runs.length ? ` (${runs.length} Durchgänge)` : ""}</button>
     </div>`;
-  app.querySelectorAll(".switch button").forEach(b => b.onclick = () => {
+  app.querySelectorAll(".switch button[data-len]").forEach(b => b.onclick = () => {
     setP2Len(parseInt(b.dataset.len, 10)); viewStart();
     const again = app.querySelector(`.switch button[data-len="${p2Len}"]`); if (again) again.focus();
+  });
+  app.querySelectorAll(".switch button[data-mode]").forEach(b => b.onclick = () => {
+    setP1Mode(b.dataset.mode); viewStart();
+    const again = app.querySelector(`.switch button[data-mode="${p1Mode}"]`); if (again) again.focus();
   });
   document.getElementById("btnStart").onclick = startRun;
   document.getElementById("btnStats").onclick = viewStats;
@@ -219,13 +257,13 @@ function viewStart() {
 
 function startRun() {
   const order = shuffle([...Array(ROUNDS_PER_POLICY).fill("p1"), ...Array(ROUNDS_PER_POLICY).fill("p2")]);
-  run = { id: Date.now().toString(36), startedAt: new Date().toISOString(), p2Len, order, rounds: [], idx: 0 };
+  run = { id: Date.now().toString(36), startedAt: new Date().toISOString(), p1Mode, p2Len, order, rounds: [], idx: 0 };
   nextRound();
 }
 
 function nextRound() {
   if (run.idx >= run.order.length) return finishRun();
-  const item = generate(run.order[run.idx], run.p2Len);
+  const item = generate(run.order[run.idx], run.p2Len, run.p1Mode);
   const st = { tShown: performance.now(), tFirst: null, attempts: 0 };
   app.innerHTML = `
     <p class="progress">Kennwort ${run.idx + 1} von ${run.order.length}</p>
@@ -247,7 +285,7 @@ function nextRound() {
     if (inp.value === item.pw) {
       const tDone = performance.now();
       run.rounds.push({
-        policy: item.policy, len: item.pw.length, entropy: item.entropy, meetsTarget: item.meetsTarget,
+        policy: item.policy, variant: item.variant, len: item.pw.length, entropy: item.entropy, meetsTarget: item.meetsTarget,
         readMs: st.tFirst - st.tShown, typingMs: tDone - st.tFirst, attempts: st.attempts
       });
       viewRoundResult(run.rounds[run.rounds.length - 1]);
@@ -279,7 +317,7 @@ function viewRoundResult(r) {
 }
 
 function finishRun() {
-  const saved = saveRun({ id: run.id, startedAt: run.startedAt, p2Len: run.p2Len, rounds: run.rounds });
+  const saved = saveRun({ id: run.id, startedAt: run.startedAt, p1Mode: run.p1Mode, p2Len: run.p2Len, rounds: run.rounds });
   const rounds = run.rounds; run = null;
   app.innerHTML = `
     <h1>Auswertung des Durchgangs</h1>
@@ -326,15 +364,16 @@ function viewStats() {
   const all = runs.flatMap(r => r.rounds);
   app.innerHTML = `
     <h1>Statistik aller Durchgänge</h1>
-    ${runs.length ? `<p class="muted">${runs.length} Durchgänge, ${all.length} Kennwörter. Policy 2 wird nach Länge getrennt ausgewertet. Daten liegen nur in diesem Browser (localStorage).</p>
+    ${runs.length ? `<p class="muted">${runs.length} Durchgänge, ${all.length} Kennwörter. Varianten (Diceware / Buchstaben, 8 / 12 Zeichen) werden getrennt ausgewertet. Daten liegen nur in diesem Browser (localStorage).</p>
       ${policyTable(all)} ${bars(all)}
       <h2>Durchgänge</h2>
       <div class="tablewrap"><table>
-        <tr><th>Datum</th><th class="num">Diceware Median</th><th class="num">Policy 2 Median</th><th class="num">Versuche Ø</th></tr>
+        <tr><th>Datum</th><th class="num">Policy 1 Median</th><th class="num">Policy 2 Median</th><th class="num">Versuche Ø</th></tr>
         ${runs.slice().reverse().map(r => {
-          const a = statsFor(r.rounds.filter(x => x.policy === "p1")), p2 = r.rounds.filter(x => x.policy === "p2");
+          const p1 = r.rounds.filter(x => x.policy === "p1"), a = statsFor(p1), g1 = p1.length ? groupOf(p1[0]) : p1Group(r.p1Mode);
+          const p2 = r.rounds.filter(x => x.policy === "p2");
           const b = statsFor(p2), g = p2.length ? groupOf(p2[0]) : "p2_" + (r.p2Len || 8);
-          return `<tr><td>${new Date(r.startedAt).toLocaleString("de-CH")}</td><td class="num">${fmtS(a.typingMedian)}</td>
+          return `<tr><td>${new Date(r.startedAt).toLocaleString("de-CH")}</td><td class="num">${tag(g1)} ${fmtS(a.typingMedian)}</td>
             <td class="num">${tag(g)} ${fmtS(b.typingMedian)}</td><td class="num">${fmtN(mean(r.rounds.map(x => x.attempts)), 2)}</td></tr>`; }).join("")}
       </table></div>`
     : `<div class="panel"><p>Noch keine Durchgänge gespeichert. Starte einen Durchgang, um Messwerte zu sammeln.</p></div>`}

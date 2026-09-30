@@ -10,7 +10,9 @@ Statische Web-App (eine HTML-Datei + Wortliste), misst, wie schnell und fehlerfr
 | Entropie | 6 × (log2 7776 + 1) = **83,55 Bit** | Inklusion-Exklusion über die Klassenbedingung: **51,32 Bit** | **78,14 Bit** |
 | Ziel ≥ 76 Bit | erreicht | **nicht erreichbar** – rot markiert | erreicht |
 
-Die Länge von Policy 2 wird auf der Startseite per Schalter (8 / 12 Zeichen) gewählt, gilt für den ganzen Durchgang und wird im Browser gespeichert (`pwtyping.p2len.v1`). Die Statistik wertet 8- und 12-Zeichen-Kennwörter getrennt aus.
+Policy 1 hat eine zweite Variante „Nur Buchstaben“: 14 Zeichen aus A–Z/a–z, mindestens je ein Gross- und Kleinbuchstabe, **79,81 Bit** (erreicht das Ziel). Diese Variante ist der Standard; Diceware ist per Schalter auf der Startseite wählbar. Die Wahl wird unter `pwtyping.p1mode.v1` gespeichert und hat Vorrang vor dem Standard.
+
+Die Länge von Policy 2 wird auf der Startseite per Schalter (8 / 12 Zeichen) gewählt, gilt für den ganzen Durchgang und wird im Browser gespeichert (`pwtyping.p2len.v1`). Beide Schalter gelten für den ganzen Durchgang. Die Statistik wertet alle vier Varianten (Diceware, Buchstaben 14, Komplex 8, Komplex 12) getrennt aus.
 
 Hinweise zur Entropie: Bei Policy 1 sind Wortgrenzen ohne Trennzeichen theoretisch mehrdeutig; der Überschätzungsfehler liegt weit unter 1 Bit. Bei Policy 2 werden gültige Kennwörter per Rejection Sampling gleichverteilt erzeugt, die angezeigte Entropie ist also exakt.
 
