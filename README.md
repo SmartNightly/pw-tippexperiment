@@ -12,7 +12,16 @@ Statische Web-App (eine HTML-Datei + Wortliste), misst, wie schnell und fehlerfr
 
 Policy 1 hat eine zweite Variante „Nur Buchstaben“: 14 Zeichen aus A–Z/a–z, mindestens je ein Gross- und Kleinbuchstabe, **79,81 Bit** (erreicht das Ziel). Diese Variante ist der Standard; Diceware ist per Schalter auf der Startseite wählbar. Die Wahl wird unter `pwtyping.p1mode.v1` gespeichert und hat Vorrang vor dem Standard.
 
-Die Länge von Policy 2 wird auf der Startseite per Schalter (8 / 12 Zeichen) gewählt, gilt für den ganzen Durchgang und wird im Browser gespeichert (`pwtyping.p2len.v1`). Beide Schalter gelten für den ganzen Durchgang. Die Statistik wertet alle vier Varianten (Diceware, Buchstaben 14, Komplex 8, Komplex 12) getrennt aus.
+Die Länge von Policy 2 wird auf der Startseite per Schalter (8 / 12 Zeichen) gewählt, gilt für den ganzen Durchgang und wird im Browser gespeichert (`pwtyping.p2len.v1`).
+
+Policy 2 hat zusätzlich den Schalter „Sonderzeichen“ (`pwtyping.p2set.v1`): „Alle“ (32 ASCII-Sonderzeichen, Standard) oder „CH-Tastatur“. Letztere verwendet nur die 23 auf der Schweizer Tastatur gängigen Sonderzeichen ``! " # $ % & ' ( ) * + , - . / : ; < = > ? @ _`` – ohne ``[ ] { } \ |`` (nur über AltGr erreichbar) und ohne ``^ ` ~`` (Tottasten). Der Zeichenvorrat sinkt damit von 94 auf 85 Zeichen:
+
+| Policy 2 – CH-Sonderzeichen | 8 Zeichen | 12 Zeichen |
+|---|---|---|
+| Entropie | **50,25 Bit** | **76,47 Bit** |
+| Ziel ≥ 76 Bit | **nicht erreichbar** – rot markiert | erreicht (knapp) |
+
+Alle Schalter gelten für den ganzen Durchgang. Die Statistik wertet alle sechs Varianten (Diceware, Buchstaben 14, Komplex 8, Komplex 12, Komplex CH 8, Komplex CH 12) getrennt aus.
 
 Hinweise zur Entropie: Bei Policy 1 sind Wortgrenzen ohne Trennzeichen theoretisch mehrdeutig; der Überschätzungsfehler liegt weit unter 1 Bit. Bei Policy 2 werden gültige Kennwörter per Rejection Sampling gleichverteilt erzeugt, die angezeigte Entropie ist also exakt.
 
